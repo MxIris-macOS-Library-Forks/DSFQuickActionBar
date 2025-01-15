@@ -53,7 +53,7 @@ class EphemeralWindow: NSPanel {
 		self.hidesOnDeactivate = true
 
 		/// Sets animations accordingly
-		self.animationBehavior = .utilityWindow
+//		self.animationBehavior = .utilityWindow
 
 		//Swift.print("EphemeralWindow: init")
 	}
