@@ -6,8 +6,80 @@
         "repositoryURL": "https://github.com/dagronf/DSFAppearanceManager",
         "state": {
           "branch": null,
-          "revision": "676cfd4e6aaa3cf6422990734c22544373db5c1a",
-          "version": "3.3.0"
+          "revision": "e9add5fdf05fe50950d105c77963b7373ddb5ad4",
+          "version": "3.5.1"
+        }
+      },
+      {
+        "package": "DSFAppKitBuilder",
+        "repositoryURL": "https://github.com/dagronf/DSFAppKitBuilder",
+        "state": {
+          "branch": null,
+          "revision": "d188d61b706d8cac88bf9ba6a5bdd98f408f202b",
+          "version": "11.10.2"
+        }
+      },
+      {
+        "package": "DSFComboButton",
+        "repositoryURL": "https://github.com/dagronf/DSFComboButton",
+        "state": {
+          "branch": null,
+          "revision": "675b8c13e0db5a759a6b757b09f7e18768830f29",
+          "version": "1.0.0"
+        }
+      },
+      {
+        "package": "DSFMenuBuilder",
+        "repositoryURL": "https://github.com/dagronf/DSFMenuBuilder",
+        "state": {
+          "branch": null,
+          "revision": "7f8f8ee0c5fb7ee6c06d057cd5ada0f99e3d3190",
+          "version": "1.2.1"
+        }
+      },
+      {
+        "package": "DSFPagerControl",
+        "repositoryURL": "https://github.com/dagronf/DSFPagerControl",
+        "state": {
+          "branch": null,
+          "revision": "9da3ea3712fec487ed496bd3905b8c01754a7921",
+          "version": "2.5.2"
+        }
+      },
+      {
+        "package": "DSFSearchField",
+        "repositoryURL": "https://github.com/dagronf/DSFSearchField",
+        "state": {
+          "branch": null,
+          "revision": "8f118439e1e74b3afb8dc8cbdc049d7979aa045e",
+          "version": "2.2.2"
+        }
+      },
+      {
+        "package": "DSFStepperView",
+        "repositoryURL": "https://github.com/dagronf/DSFStepperView",
+        "state": {
+          "branch": null,
+          "revision": "6e433c1d87f8bc810756e276c168a87fcc2e98ae",
+          "version": "4.4.0"
+        }
+      },
+      {
+        "package": "DSFToggleButton",
+        "repositoryURL": "https://github.com/dagronf/DSFToggleButton",
+        "state": {
+          "branch": null,
+          "revision": "434fab25cde1d9876350107a5edb1825a8e29fda",
+          "version": "7.1.0"
+        }
+      },
+      {
+        "package": "DSFValueBinders",
+        "repositoryURL": "https://github.com/dagronf/DSFValueBinders",
+        "state": {
+          "branch": null,
+          "revision": "8bbcacda087d1f0da384c8ad2fda061faabda3f1",
+          "version": "1.0.1"
         }
       }
     ]

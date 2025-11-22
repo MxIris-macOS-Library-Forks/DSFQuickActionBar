@@ -49,42 +49,45 @@ final class DSFPrimaryRoundedView: NSView {
 		self.wantsLayer = true
 		self.translatesAutoresizingMaskIntoConstraints = false
 
-		if #available(macOS 10.14, *), !DSFAppearanceCache.shared.reduceTransparency {
-			let blurView = NSVisualEffectView()
-			blurView.translatesAutoresizingMaskIntoConstraints = false
-			blurView.wantsLayer = true
-			blurView.blendingMode = .behindWindow
-			blurView.material = .menu
-			blurView.state = .active
-			blurView.setContentHuggingPriority(.defaultLow, for: .vertical)
-			blurView.setContentHuggingPriority(.defaultLow, for: .horizontal)
-			blurView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
-			blurView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-			self.addSubview(blurView)
-			self.addConstraint(NSLayoutConstraint(item: blurView, attribute: .leading, relatedBy: .equal, toItem: self, attribute: .leading, multiplier: 1, constant: 0))
-			self.addConstraint(NSLayoutConstraint(item: blurView, attribute: .top, relatedBy: .equal, toItem: self, attribute: .top, multiplier: 1, constant: -5))
-			self.addConstraint(NSLayoutConstraint(item: blurView, attribute: .trailing, relatedBy: .equal, toItem: self, attribute: .trailing, multiplier: 1, constant: 0))
-			self.addConstraint(NSLayoutConstraint(item: blurView, attribute: .bottom, relatedBy: .equal, toItem: self, attribute: .bottom, multiplier: 1, constant: 0))
-
-			blurView.layer!.mask = self.layer!
-		}
+        if #unavailable(macOS 26.0) {
+            if #available(macOS 10.14, *), !DSFAppearanceCache.shared.reduceTransparency {
+                let blurView = NSVisualEffectView()
+                blurView.translatesAutoresizingMaskIntoConstraints = false
+                blurView.wantsLayer = true
+                blurView.blendingMode = .behindWindow
+                blurView.material = .menu
+                blurView.state = .active
+                blurView.setContentHuggingPriority(.defaultLow, for: .vertical)
+                blurView.setContentHuggingPriority(.defaultLow, for: .horizontal)
+                blurView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+                blurView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+                self.addSubview(blurView)
+                self.addConstraint(NSLayoutConstraint(item: blurView, attribute: .leading, relatedBy: .equal, toItem: self, attribute: .leading, multiplier: 1, constant: 0))
+                self.addConstraint(NSLayoutConstraint(item: blurView, attribute: .top, relatedBy: .equal, toItem: self, attribute: .top, multiplier: 1, constant: -5))
+                self.addConstraint(NSLayoutConstraint(item: blurView, attribute: .trailing, relatedBy: .equal, toItem: self, attribute: .trailing, multiplier: 1, constant: 0))
+                self.addConstraint(NSLayoutConstraint(item: blurView, attribute: .bottom, relatedBy: .equal, toItem: self, attribute: .bottom, multiplier: 1, constant: 0))
+                
+                blurView.layer!.mask = self.layer!
+            }
+        }
 	}
 
 	override func updateLayer() {
-		let baseLayer = self.layer!
-		baseLayer.cornerRadius = 10
-		baseLayer.backgroundColor = NSColor.windowBackgroundColor.cgColor
-
-		// Attempting to match the style of spotlight
-		if DSFAppearanceCache.shared.isDark {
-			baseLayer.borderWidth = 1
-			baseLayer.borderColor =
-				DSFAppearanceCache.shared.increaseContrast
-					? NSColor.secondaryLabelColor.cgColor
-					: NSColor.tertiaryLabelColor.cgColor
-		}
-		else {
-			baseLayer.borderWidth = 0
-		}
+        if #unavailable(macOS 26.0) {
+            let baseLayer = self.layer!
+            baseLayer.cornerRadius = 10
+            baseLayer.backgroundColor = NSColor.windowBackgroundColor.cgColor
+            // Attempting to match the style of spotlight
+            if DSFAppearanceCache.shared.isDark {
+                baseLayer.borderWidth = 1
+                baseLayer.borderColor =
+                    DSFAppearanceCache.shared.increaseContrast
+                        ? NSColor.secondaryLabelColor.cgColor
+                        : NSColor.tertiaryLabelColor.cgColor
+            }
+            else {
+                baseLayer.borderWidth = 0
+            }
+        }
 	}
 }
