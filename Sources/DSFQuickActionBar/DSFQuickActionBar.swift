@@ -27,7 +27,7 @@
 import AppKit
 
 /// A spotlight inspired floating action bar
-public class DSFQuickActionBar {
+public final class DSFQuickActionBar {
 	/// The default width for a quick action bar.
 	public static let DefaultWidth: CGFloat = 640
 	/// The default height for a quick action bar.
@@ -100,6 +100,7 @@ public extension DSFQuickActionBar {
 		width: CGFloat = (NSScreen.main?.frame.width ?? (DSFQuickActionBar.DefaultWidth*4)) / 4.0,
 		height: CGFloat = (NSScreen.main?.frame.height ?? (DSFQuickActionBar.DefaultHeight*4)) / 4.0,
 		showKeyboardShortcuts: Bool = false,
+        canBecomeMainWindow: Bool = true,
 		didClose: (() -> Void)? = nil
 	) {
 		self.width = width
@@ -143,7 +144,7 @@ public extension DSFQuickActionBar {
 		quickBarWindow.showKeyboardShortcuts = showKeyboardShortcuts
 		quickBarWindow.setFrame(posRect, display: true)
 		quickBarWindow.setup(parentWindow: parentWindow, initialSearchText: initialSearchText)
-
+        quickBarWindow.currentCanBecomeMainWindow = canBecomeMainWindow
 		quickBarWindow.placeholderText = placeholderText ?? ""
 
 		quickBarWindow.didDetectClose = { [weak self] in

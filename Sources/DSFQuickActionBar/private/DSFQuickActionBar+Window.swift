@@ -28,7 +28,7 @@ import AppKit
 import DSFAppearanceManager
 
 extension DSFQuickActionBar {
-    @objc(DSFQuickActionBarWindow) class Window: EphemeralWindow {
+    @objc(DSFQuickActionBarWindow) final class Window: EphemeralWindow {
         // The actionbar instance
         var quickActionBar: DSFQuickActionBar!
 
@@ -37,12 +37,14 @@ extension DSFQuickActionBar {
 
         // Allow the window to become key
         override var canBecomeKey: Bool { return true }
-        override var canBecomeMain: Bool { return true }
+        override var canBecomeMain: Bool { return currentCanBecomeMainWindow }
 
         override func resignFirstResponder() -> Bool {
             return true
         }
 
+        var currentCanBecomeMainWindow: Bool = true
+        
         // Should the control display keyboard shortcuts?
         var showKeyboardShortcuts: Bool = false
 
@@ -206,7 +208,6 @@ extension DSFQuickActionBar.Window {
                 let glassEffectView = NSGlassEffectView()
                 glassEffectView.contentView = content
                 glassEffectView.cornerRadius = 30
-                glassEffectView.style = .regular
                 glassEffectView.setValue(4, forKeyPath: "_variant")
                 self.contentView = glassEffectView
             } else {

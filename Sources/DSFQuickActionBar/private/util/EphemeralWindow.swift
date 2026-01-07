@@ -64,6 +64,11 @@ class EphemeralWindow: NSPanel {
 		self.close()
 	}
 
+    override func resignKey() {
+        super.resignKey()
+        self.close()
+    }
+    
 	/// Close and toggle presentation, so that it matches the current state of the panel
 	override func close() {
 		if self.hasClosed == false {
