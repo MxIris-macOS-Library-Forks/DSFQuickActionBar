@@ -1,29 +1,3 @@
-//
-//  DSFQuickActionBar+Window.swift
-//
-//  Copyright © 2022 Darren Ford. All rights reserved.
-//
-//  MIT license
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to
-//  deal in the Software without restriction, including without limitation the
-//  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-//  sell copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-//  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-//  IN THE SOFTWARE.
-//
-
 import AppKit
 import DSFAppearanceManager
 
@@ -44,7 +18,7 @@ extension DSFQuickActionBar {
         }
 
         var currentCanBecomeMainWindow: Bool = true
-        
+
         // Should the control display keyboard shortcuts?
         var showKeyboardShortcuts: Bool = false
 
@@ -204,15 +178,7 @@ extension DSFQuickActionBar.Window {
         UsingEffectiveAppearance(ofWindow: parentWindow) {
             /// The background view for the window
             let content = DSFPrimaryRoundedView()
-            if #available(macOS 26.0, *) {
-                let glassEffectView = NSGlassEffectView()
-                glassEffectView.contentView = content
-                glassEffectView.cornerRadius = 30
-                glassEffectView.setValue(4, forKeyPath: "_variant")
-                self.contentView = glassEffectView
-            } else {
-                self.contentView = content
-            }
+            self.contentView = content
 
             /// Primary view content
             primaryStack.wantsLayer = true
@@ -221,11 +187,14 @@ extension DSFQuickActionBar.Window {
             primaryStack.setContentHuggingPriority(.required, for: .vertical)
 
             // Attach the stack into the window view
-            content.addSubview(primaryStack)
-            content.addConstraint(NSLayoutConstraint(item: primaryStack, attribute: .leading, relatedBy: .equal, toItem: content, attribute: .leading, multiplier: 1, constant: 0))
-            content.addConstraint(NSLayoutConstraint(item: primaryStack, attribute: .top, relatedBy: .equal, toItem: content, attribute: .top, multiplier: 1, constant: 0))
-            content.addConstraint(NSLayoutConstraint(item: primaryStack, attribute: .trailing, relatedBy: .equal, toItem: content, attribute: .trailing, multiplier: 1, constant: 0))
-            content.addConstraint(NSLayoutConstraint(item: primaryStack, attribute: .bottom, relatedBy: .equal, toItem: content, attribute: .bottom, multiplier: 1, constant: 0))
+            content.contentView.addSubview(primaryStack)
+
+            NSLayoutConstraint.activate([
+                content.contentView.topAnchor.constraint(equalTo: primaryStack.topAnchor),
+                content.contentView.leadingAnchor.constraint(equalTo: primaryStack.leadingAnchor),
+                content.contentView.trailingAnchor.constraint(equalTo: primaryStack.trailingAnchor),
+                content.contentView.bottomAnchor.constraint(equalTo: primaryStack.bottomAnchor),
+            ])
 
             self.backgroundColor = NSColor.clear
             self.isOpaque = false
@@ -255,9 +224,8 @@ extension DSFQuickActionBar.Window {
             if let parent = parentWindow {
                 self.order(.above, relativeTo: parent.windowNumber)
             }
-            
+
             self.primaryStack.layoutSubtreeIfNeeded()
-            
 
             if let initialSearchText = initialSearchText {
                 self.currentSearchText = initialSearchText
@@ -354,13 +322,13 @@ extension DSFQuickActionBar.Window: NSTextFieldDelegate {
 
     func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
         if commandSelector == #selector(moveDown(_:)) {
-            return self.results.selectNextSelectableRow()
+            return results.selectNextSelectableRow()
         } else if commandSelector == #selector(moveUp(_:)) {
-            return self.results.selectPreviousSelectableRow()
+            return results.selectPreviousSelectableRow()
         } else if commandSelector == #selector(insertNewline(_:)) {
-            let currentRowSelection = self.results.selectedRow
+            let currentRowSelection = results.selectedRow
             guard currentRowSelection >= 0 else { return false }
-            self.results.rowAction()
+            results.rowAction()
             return true
         } else if
             showKeyboardShortcuts,

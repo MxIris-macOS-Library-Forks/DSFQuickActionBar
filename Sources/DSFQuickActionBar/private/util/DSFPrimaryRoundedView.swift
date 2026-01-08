@@ -35,6 +35,9 @@ final class DSFPrimaryRoundedView: NSView {
 	override var allowsVibrancy: Bool { true }
 	override var wantsUpdateLayer: Bool { true }
 
+    
+    let contentView = NSView()
+    
 	override init(frame frameRect: NSRect) {
 		super.init(frame: frameRect)
 		self.setup()
@@ -49,26 +52,45 @@ final class DSFPrimaryRoundedView: NSView {
 		self.wantsLayer = true
 		self.translatesAutoresizingMaskIntoConstraints = false
 
-        if #unavailable(macOS 26.0) {
-            if #available(macOS 10.14, *), !DSFAppearanceCache.shared.reduceTransparency {
-                let blurView = NSVisualEffectView()
-                blurView.translatesAutoresizingMaskIntoConstraints = false
-                blurView.wantsLayer = true
-                blurView.blendingMode = .behindWindow
-                blurView.material = .menu
-                blurView.state = .active
-                blurView.setContentHuggingPriority(.defaultLow, for: .vertical)
-                blurView.setContentHuggingPriority(.defaultLow, for: .horizontal)
-                blurView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
-                blurView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-                self.addSubview(blurView)
-                self.addConstraint(NSLayoutConstraint(item: blurView, attribute: .leading, relatedBy: .equal, toItem: self, attribute: .leading, multiplier: 1, constant: 0))
-                self.addConstraint(NSLayoutConstraint(item: blurView, attribute: .top, relatedBy: .equal, toItem: self, attribute: .top, multiplier: 1, constant: -5))
-                self.addConstraint(NSLayoutConstraint(item: blurView, attribute: .trailing, relatedBy: .equal, toItem: self, attribute: .trailing, multiplier: 1, constant: 0))
-                self.addConstraint(NSLayoutConstraint(item: blurView, attribute: .bottom, relatedBy: .equal, toItem: self, attribute: .bottom, multiplier: 1, constant: 0))
-                
-                blurView.layer!.mask = self.layer!
-            }
+        if #available(macOS 26.0, *) {
+            let glassView = NSGlassEffectView()
+            glassView.contentView = contentView
+            glassView.cornerRadius = 28
+            glassView.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(glassView)
+            NSLayoutConstraint.activate([
+                topAnchor.constraint(equalTo: glassView.topAnchor),
+                leadingAnchor.constraint(equalTo: glassView.leadingAnchor),
+                trailingAnchor.constraint(equalTo: glassView.trailingAnchor),
+                bottomAnchor.constraint(equalTo: glassView.bottomAnchor),
+            ])
+        } else if !DSFAppearanceCache.shared.reduceTransparency {
+            let blurView = NSVisualEffectView()
+            blurView.translatesAutoresizingMaskIntoConstraints = false
+            blurView.wantsLayer = true
+            blurView.blendingMode = .behindWindow
+            blurView.material = .menu
+            blurView.state = .active
+            blurView.setContentHuggingPriority(.defaultLow, for: .vertical)
+            blurView.setContentHuggingPriority(.defaultLow, for: .horizontal)
+            blurView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+            blurView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+            self.addSubview(blurView)
+            NSLayoutConstraint.activate([
+                topAnchor.constraint(equalTo: blurView.topAnchor),
+                leadingAnchor.constraint(equalTo: blurView.leadingAnchor),
+                trailingAnchor.constraint(equalTo: blurView.trailingAnchor),
+                bottomAnchor.constraint(equalTo: blurView.bottomAnchor),
+            ])
+            blurView.layer?.mask = self.layer
+            contentView.translatesAutoresizingMaskIntoConstraints = false
+            blurView.addSubview(contentView)
+            NSLayoutConstraint.activate([
+                blurView.topAnchor.constraint(equalTo: contentView.topAnchor),
+                blurView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+                blurView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+                blurView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            ])
         }
 	}
 
@@ -88,6 +110,8 @@ final class DSFPrimaryRoundedView: NSView {
             else {
                 baseLayer.borderWidth = 0
             }
+        } else {
+            layer?.cornerRadius = bounds.height / 2
         }
 	}
 }

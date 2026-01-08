@@ -84,7 +84,6 @@ extension DSFQuickActionBar.ResultsView {
 
 		self.addSubview(scrollView)
 		scrollView.translatesAutoresizingMaskIntoConstraints = false
-		tableView.translatesAutoresizingMaskIntoConstraints = false
 
 		scrollView.contentView = DSFFlippedClipView()
 
@@ -424,7 +423,7 @@ private class ResultsRowView: NSTableRowView {
 	override func drawSelection(in dirtyRect: NSRect) {
 		if selectionHighlightStyle != .none {
 			DSFAppearanceManager.AccentColor.setFill()
-			let pth = NSBezierPath(roundedRect: self.bounds.insetBy(dx: 4, dy: 2), xRadius: 4, yRadius: 4)
+			let pth = NSBezierPath(roundedRect: self.bounds.insetBy(dx: 12, dy: 2), xRadius: 15, yRadius: 15)
 			pth.fill()
 		}
 	}
