@@ -80,6 +80,18 @@ public final class DSFQuickActionBar {
 	internal var width: CGFloat = DSFQuickActionBar.DefaultWidth
 	internal var height: CGFloat = DSFQuickActionBar.DefaultHeight
 	internal var searchImage: NSImage?
+    internal var reuseCellView: NSView?
+}
+
+public extension DSFQuickActionBar {
+    func dequeueView<ReuseView>() -> ReuseView? {
+        if let reuseView = reuseCellView as? ReuseView {
+            reuseCellView = nil
+            return reuseView
+        } else {
+            return nil
+        }
+    }
 }
 
 public extension DSFQuickActionBar {

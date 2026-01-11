@@ -28,7 +28,7 @@ import AppKit
 import DSFAppearanceManager
 
 extension DSFQuickActionBar {
-	class ResultsView: NSView {
+	final class ResultsView: NSView {
 		private let scrollView = NSScrollView()
 		private let tableView = DSFQuickActionBar.ResultsTableView()
 		private let horizontalView = NSBox()
@@ -193,53 +193,25 @@ extension DSFQuickActionBar.ResultsView: NSTableViewDelegate, NSTableViewDataSou
 	}
 
 	func tableView(_ tableView: NSTableView, viewFor _: NSTableColumn?, row: Int) -> NSView? {
-		let itemIdentifier = self.identifiers[row]
-
-		let content = self.contentSource?.quickActionBar(
-			self.quickActionBar,
-			viewForItem: itemIdentifier,
-			searchTerm: currentSearchTerm
-		) ?? NSView()
-
-		guard
-			showKeyboardShortcuts == true,
-			let shortcutKey = self.shortcutKeyboardMap[itemIdentifier]
-		else {
-			// We don't have keyboard shortcuts turned on, or there's no shortcut for the identifier
-			return content
-		}
-
-		content.translatesAutoresizingMaskIntoConstraints = false
-		content.setContentHuggingPriority(.defaultLow, for: .horizontal)
-
-		let container = NSView()
-		container.translatesAutoresizingMaskIntoConstraints = false
-		container.addSubview(content)
-
-		container.addConstraint(NSLayoutConstraint(item: content, attribute: .leading, relatedBy: .equal, toItem: container, attribute: .leading, multiplier: 1, constant: 0))
-		container.addConstraint(NSLayoutConstraint(item: content, attribute: .top, relatedBy: .equal, toItem: container, attribute: .top, multiplier: 1, constant: 0))
-		container.addConstraint(NSLayoutConstraint(item: content, attribute: .bottom, relatedBy: .equal, toItem: container, attribute: .bottom, multiplier: 1, constant: 0))
-
-		let t = shortcutKey == 0 ? NSTextField.newLabel("↩︎") : NSTextField.newLabel("⌘\(shortcutKey)")
-		t.alignment = .right
-		t.translatesAutoresizingMaskIntoConstraints = false
-		t.font = self.keyboardShortcutFont
-		t.textColor = .secondaryLabelColor
-		t.setContentHuggingPriority(.init(999), for: .horizontal)
-		t.setContentHuggingPriority(.required, for: .vertical)
-		container.addSubview(t)
-
-		// A hack for layout on pre-11 systems. Autolayout didn't account for the appearance of scrollbars back then
-		var inset: CGFloat = -24
-		if #available(macOS 11, *) {
-			inset = 0
-		}
-
-		container.addConstraint(NSLayoutConstraint(item: t, attribute: .trailing, relatedBy: .equal, toItem: container, attribute: .trailing, multiplier: 1, constant: inset))
-		container.addConstraint(NSLayoutConstraint(item: t, attribute: .centerY, relatedBy: .equal, toItem: container, attribute: .centerY, multiplier: 1, constant: 0))
-		container.addConstraint(NSLayoutConstraint(item: t, attribute: .leading, relatedBy: .equal, toItem: content, attribute: .trailing, multiplier: 1, constant: 4))
-
-		return container
+        let itemIdentifier = self.identifiers[row]
+        
+        let reuseCellView = tableView.makeView(withIdentifier: .init(String(describing: DSFQuickActionBar.ResultsTableCellView.self)), owner: nil) as? DSFQuickActionBar.ResultsTableCellView
+        
+        if let cellView = reuseCellView {
+            quickActionBar.reuseCellView = cellView.contentView
+        }
+        
+        let contentView = self.contentSource?.quickActionBar(
+            self.quickActionBar,
+            viewForItem: itemIdentifier,
+            searchTerm: currentSearchTerm
+        )
+        
+        if contentView === reuseCellView?.contentView {
+            return reuseCellView
+        } else {
+            return DSFQuickActionBar.ResultsTableCellView(contentView: contentView ?? NSView(), shortcutKey: showKeyboardShortcuts == true ? self.shortcutKeyboardMap[itemIdentifier] : nil)
+        }
 	}
 
 	func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
@@ -262,7 +234,13 @@ extension DSFQuickActionBar.ResultsView: NSTableViewDelegate, NSTableViewDataSou
 	}
 
 	func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
-		ResultsRowView()
+        if let rowView = tableView.makeView(withIdentifier: .init(String(describing: ResultsRowView.self)), owner: nil) as? ResultsRowView {
+            return rowView
+        } else {
+            let rowView = ResultsRowView()
+            rowView.identifier = .init(String(describing: ResultsRowView.self))
+            return rowView
+        }
 	}
 }
 
@@ -415,6 +393,51 @@ extension DSFQuickActionBar {
 			}
 		}
 	}
+    
+    
+    final class ResultsTableCellView: NSTableCellView {
+        let contentView: NSView
+        
+        init(contentView: NSView, shortcutKey: Int?) {
+            self.contentView = contentView
+            super.init(frame: .zero)
+            
+            contentView.translatesAutoresizingMaskIntoConstraints = false
+            contentView.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+            identifier = .init(String(describing: DSFQuickActionBar.ResultsTableCellView.self))
+            translatesAutoresizingMaskIntoConstraints = false
+            addSubview(contentView)
+
+            addConstraint(NSLayoutConstraint(item: contentView, attribute: .leading, relatedBy: .equal, toItem: self, attribute: .leading, multiplier: 1, constant: 0))
+            addConstraint(NSLayoutConstraint(item: contentView, attribute: .top, relatedBy: .equal, toItem: self, attribute: .top, multiplier: 1, constant: 0))
+            addConstraint(NSLayoutConstraint(item: contentView, attribute: .bottom, relatedBy: .equal, toItem: self, attribute: .bottom, multiplier: 1, constant: 0))
+            if let shortcutKey {
+                let t = shortcutKey == 0 ? NSTextField.newLabel("↩︎") : NSTextField.newLabel("⌘\(shortcutKey)")
+                t.alignment = .right
+                t.translatesAutoresizingMaskIntoConstraints = false
+                t.font = NSFont.monospacedDigitSystemFont(ofSize: 16, weight: .medium)
+                t.textColor = .secondaryLabelColor
+                t.setContentHuggingPriority(.init(999), for: .horizontal)
+                t.setContentHuggingPriority(.required, for: .vertical)
+                addSubview(t)
+                
+                // A hack for layout on pre-11 systems. Autolayout didn't account for the appearance of scrollbars back then
+                var inset: CGFloat = -24
+                if #available(macOS 11, *) {
+                    inset = 0
+                }
+                
+                addConstraint(NSLayoutConstraint(item: t, attribute: .trailing, relatedBy: .equal, toItem: self, attribute: .trailing, multiplier: 1, constant: inset))
+                addConstraint(NSLayoutConstraint(item: t, attribute: .centerY, relatedBy: .equal, toItem: self, attribute: .centerY, multiplier: 1, constant: 0))
+                addConstraint(NSLayoutConstraint(item: t, attribute: .leading, relatedBy: .equal, toItem: contentView, attribute: .trailing, multiplier: 1, constant: 4))
+            }
+        }
+        
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+    }
 }
 
 // MARK: - Custom row drawing
