@@ -176,9 +176,28 @@ extension DSFQuickActionBar.Window {
 
         // Make sure we adopt the effective appearance
         UsingEffectiveAppearance(ofWindow: parentWindow) {
-            /// The background view for the window
+            // Transparent container as window contentView — provides padding
+            // for the scale animation to overflow without clipping (like Spotlight).
+            let container = NSView()
+            container.wantsLayer = true
+            self.contentView = container
+
+            /// The background view (glass / blur)
             let content = DSFPrimaryRoundedView()
-            self.contentView = content
+            content.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview(content)
+
+            let pad = DSFQuickActionBar.animationPadding
+            NSLayoutConstraint.activate([
+                content.topAnchor.constraint(equalTo: container.topAnchor, constant: pad),
+                content.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: pad),
+                content.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -pad),
+                content.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -pad),
+            ])
+
+            // Use the rounded view's layer for the scale animation
+            content.wantsLayer = true
+            self.animationLayer = content.layer
 
             /// Primary view content
             primaryStack.wantsLayer = true
@@ -231,7 +250,9 @@ extension DSFQuickActionBar.Window {
                 self.currentSearchText = initialSearchText
             }
 
-            ensuringMainThreadAsync { [weak self] in
+            // Defer the initial search until after the present animation completes,
+            // so results don't expand during the window entrance animation.
+            self.didFinishPresentAnimation = { [weak self] in
                 self?.searchTermDidChange()
             }
         }

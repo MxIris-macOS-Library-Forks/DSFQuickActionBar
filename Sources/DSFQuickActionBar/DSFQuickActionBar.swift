@@ -36,6 +36,9 @@ public final class DSFQuickActionBar {
 	// The default placeholder text to display in the edit field
 	public static let DefaultPlaceholderString: String = "Quick Actions"
 
+	/// Padding around the content view to allow scale animation overflow (like Spotlight)
+	internal static let animationPadding: CGFloat = 40
+
 	/// The default image to display in the search field
 	public static let DefaultImage: NSImage = {
 		let image = DSFQuickActionBar.DefaultSearchImage()
@@ -144,9 +147,13 @@ public extension DSFQuickActionBar {
 		let w2: CGFloat = width // the width of the action bar
 		let h2: CGFloat = 100 // just a default height
 
+		// Position based on visible content size
 		let x2 = originRect.origin.x + ((originRect.width - w2) / 2.0)
 		let y2 = originRect.origin.y + ((originRect.height - h2) / 1.3)
-		let posRect = CGRect(x: x2, y: y2, width: w2, height: h2)
+
+		// Expand frame by animation padding so scale overflow isn't clipped
+		let pad = Self.animationPadding
+		let posRect = CGRect(x: x2 - pad, y: y2 - pad, width: w2 + pad * 2, height: h2 + pad * 2)
 
 		let quickBarWindow = DSFQuickActionBar.Window()
 		self.quickBarController = NSWindowController(window: quickBarWindow)
@@ -186,8 +193,8 @@ public extension DSFQuickActionBar {
             NSApp.activate(ignoringOtherApps: true)
         }
 
-		// Now present the window
-		quickBarWindow.makeKeyAndOrderFront(self)
+		// Now present the window with animation
+		quickBarWindow.presentWithAnimation()
 	}
 }
 
