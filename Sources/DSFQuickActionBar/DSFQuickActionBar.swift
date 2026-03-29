@@ -145,15 +145,7 @@ public extension DSFQuickActionBar {
 		}
 
 		let w2: CGFloat = width // the width of the action bar
-		let h2: CGFloat = 100 // just a default height
-
-		// Position based on visible content size
-		let x2 = originRect.origin.x + ((originRect.width - w2) / 2.0)
-		let y2 = originRect.origin.y + ((originRect.height - h2) / 1.3)
-
-		// Expand frame by animation padding so scale overflow isn't clipped
 		let pad = Self.animationPadding
-		let posRect = CGRect(x: x2 - pad, y: y2 - pad, width: w2 + pad * 2, height: h2 + pad * 2)
 
 		let quickBarWindow = DSFQuickActionBar.Window()
 		self.quickBarController = NSWindowController(window: quickBarWindow)
@@ -161,8 +153,20 @@ public extension DSFQuickActionBar {
 
 		quickBarWindow.quickActionBar = self
 		quickBarWindow.showKeyboardShortcuts = showKeyboardShortcuts
-		quickBarWindow.setFrame(posRect, display: true)
+
+		// Set a temporary frame for setup (need a valid size for layout)
+		quickBarWindow.setFrame(CGRect(x: 0, y: 0, width: w2 + pad * 2, height: 200), display: false)
 		quickBarWindow.setup(parentWindow: parentWindow, initialSearchText: initialSearchText)
+
+		// Calculate the collapsed content height to size the initial window
+		let collapsedContentHeight = quickBarWindow.collapsedContentHeight()
+		let windowHeight = collapsedContentHeight + 2 * pad
+
+		// Position: centered horizontally, offset upward vertically (Spotlight style)
+		let x2 = originRect.origin.x + ((originRect.width - w2) / 2.0)
+		let y2 = originRect.origin.y + ((originRect.height - collapsedContentHeight) / 1.3)
+		let posRect = CGRect(x: x2 - pad, y: y2 - pad, width: w2 + pad * 2, height: windowHeight)
+		quickBarWindow.setFrame(posRect, display: true)
         quickBarWindow.currentCanBecomeMainWindow = canBecomeMainWindow
 		quickBarWindow.placeholderText = placeholderText ?? ""
 

@@ -158,14 +158,32 @@ extension DSFQuickActionBar {
         // Is set to true when the user 'activates' an item in the result list
         internal var userDidActivateItem: Bool = false
 
+        // Tracks whether results are currently expanded (visible)
+        private var isResultsExpanded = false
+
         // The task if the control is waiting for search results
         private var currentSearchRequestTask: DSFQuickActionBar.SearchTask?
+
+        // Spring animation state for results expand/collapse
+        private var springAnimationTimer: Timer?
+        private var springState = DSFSpringState()
+        private var animationStartFrame: NSRect = .zero
+        private var animationTargetFrame: NSRect = .zero
+        private var animationIsShowing: Bool = true
+        private var lastSpringTickTime: CFTimeInterval = 0
     }
 }
 
 extension DSFQuickActionBar.Window {
     @inlinable func reloadData() {
         results.reloadData()
+    }
+
+    /// Calculate the collapsed content height (search bar only, no results).
+    /// Call after `setup()` and a layout pass.
+    func collapsedContentHeight() -> CGFloat {
+        primaryStack.layoutSubtreeIfNeeded()
+        return primaryStack.fittingSize.height
     }
 }
 
@@ -178,7 +196,10 @@ extension DSFQuickActionBar.Window {
         UsingEffectiveAppearance(ofWindow: parentWindow) {
             // Transparent container as window contentView — provides padding
             // for the scale animation to overflow without clipping (like Spotlight).
-            let container = NSView()
+            // Use a flipped container so the glass background grows DOWNWARD when
+            // the window expands. This keeps the search bar's y-coordinate constant
+            // regardless of window height, preventing it from jumping during animation.
+            let container = DSFFlippedContainerView()
             container.wantsLayer = true
             self.contentView = container
 
@@ -208,11 +229,14 @@ extension DSFQuickActionBar.Window {
             // Attach the stack into the window view
             content.contentView.addSubview(primaryStack)
 
+            // Pin stack to top/leading/trailing only — no bottom constraint.
+            // This lets the stack extend beyond the glass view when results are
+            // visible but the window hasn't finished expanding. The glass view's
+            // layer mask clips the overflow, creating a progressive reveal effect.
             NSLayoutConstraint.activate([
                 content.contentView.topAnchor.constraint(equalTo: primaryStack.topAnchor),
                 content.contentView.leadingAnchor.constraint(equalTo: primaryStack.leadingAnchor),
                 content.contentView.trailingAnchor.constraint(equalTo: primaryStack.trailingAnchor),
-                content.contentView.bottomAnchor.constraint(equalTo: primaryStack.bottomAnchor),
             ])
 
             self.backgroundColor = NSColor.clear
@@ -275,6 +299,150 @@ extension DSFQuickActionBar.Window {
 extension DSFQuickActionBar.Window {
     func provideResultIdentifiers(_ identifiers: [AnyHashable]) {
         results.identifiers = identifiers
+    }
+}
+
+// MARK: - Results Expand/Collapse Animation
+
+extension DSFQuickActionBar.Window {
+    /// Called by ResultsView when the results count changes.
+    /// Manages the animated expand/collapse transition.
+    func handleResultsCountChanged(hasResults: Bool) {
+        if hasResults == isResultsExpanded {
+            // Same state — ensure isHidden is correct without animation
+            results.isHidden = !hasResults
+            return
+        }
+        isResultsExpanded = hasResults
+        animateResultsTransition(showing: hasResults)
+    }
+
+    private func animateResultsTransition(showing: Bool) {
+        // Cancel any ongoing animation
+        springAnimationTimer?.invalidate()
+        springAnimationTimer = nil
+
+        let startFrame = self.frame
+        let targetFrame = calculateWindowFrame(showingResults: showing)
+
+        if showing {
+            // Show results immediately so the stack is at full height.
+            // The glass view's layer mask clips overflow — content beyond
+            // the current glass bounds is hidden until the window expands.
+            results.isHidden = false
+        }
+
+        // Reset spring state (position=0 → startFrame, position=1 → targetFrame)
+        springState = DSFSpringState()
+        animationStartFrame = startFrame
+        animationTargetFrame = targetFrame
+        animationIsShowing = showing
+        lastSpringTickTime = CACurrentMediaTime()
+
+        // Use a manual timer so that each tick calls setFrame(_:display:)
+        // directly, keeping the model frame and visual frame in sync.
+        // Unlike animator().setFrame(), this prevents Auto Layout from
+        // resolving for the final frame while the window is mid-animation.
+        let timer = Timer(timeInterval: 1.0 / 120.0, repeats: true) { [weak self] _ in
+            self?.springAnimationTick()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        springAnimationTimer = timer
+    }
+
+    private func springAnimationTick() {
+        let now = CACurrentMediaTime()
+        let deltaTime = CGFloat(now - lastSpringTickTime)
+        lastSpringTickTime = now
+
+        // Clamp delta to avoid instability from large time gaps
+        let clampedDeltaTime = min(deltaTime, 1.0 / 30.0)
+        let settled = springState.step(deltaTime: clampedDeltaTime)
+
+        let progress = springState.position
+        let currentFrame = interpolateRect(
+            from: animationStartFrame,
+            to: animationTargetFrame,
+            progress: progress
+        )
+        self.setFrame(currentFrame, display: true)
+
+        if settled {
+            // Snap to exact target
+            self.setFrame(animationTargetFrame, display: true)
+
+            springAnimationTimer?.invalidate()
+            springAnimationTimer = nil
+
+            if !animationIsShowing {
+                results.isHidden = true
+            }
+            invalidateShadow()
+        }
+    }
+
+    /// Calculate the target window frame, keeping the visual top edge fixed.
+    private func calculateWindowFrame(showingResults: Bool) -> NSRect {
+        let pad = DSFQuickActionBar.animationPadding
+        let edgeInsets = primaryStack.edgeInsets
+        let searchBarHeight = searchStack.fittingSize.height
+        let stackSpacing = primaryStack.spacing
+
+        var contentHeight = edgeInsets.top + searchBarHeight + edgeInsets.bottom
+        if showingResults {
+            contentHeight += stackSpacing + quickActionBar.height
+        }
+
+        let windowHeight = contentHeight + 2 * pad
+
+        // Keep the visual top edge fixed by adjusting origin.y
+        let currentFrame = self.frame
+        let topY = currentFrame.origin.y + currentFrame.height
+        return NSRect(
+            x: currentFrame.origin.x,
+            y: topY - windowHeight,
+            width: currentFrame.width,
+            height: windowHeight
+        )
+    }
+
+    private func interpolateRect(from: NSRect, to: NSRect, progress: CGFloat) -> NSRect {
+        return NSRect(
+            x: from.origin.x + (to.origin.x - from.origin.x) * progress,
+            y: from.origin.y + (to.origin.y - from.origin.y) * progress,
+            width: from.width + (to.width - from.width) * progress,
+            height: from.height + (to.height - from.height) * progress
+        )
+    }
+}
+
+// MARK: - Spring Physics Solver
+
+/// Damped harmonic oscillator for smooth window frame animation.
+/// Parameters approximate `Spring(duration: 0.3, bounce: 0.2)`.
+private struct DSFSpringState {
+    var position: CGFloat = 0   // 0 = start, 1 = target
+    var velocity: CGFloat = 0
+
+    static let stiffness: CGFloat = 300
+    static let damping: CGFloat = 28
+    static let mass: CGFloat = 1
+
+    private static let positionThreshold: CGFloat = 0.0005
+    private static let velocityThreshold: CGFloat = 0.01
+
+    /// Advance the spring simulation. Returns `true` when settled at the target.
+    mutating func step(deltaTime: CGFloat) -> Bool {
+        let displacement = position - 1.0
+        let springForce = -Self.stiffness * displacement
+        let dampingForce = -Self.damping * velocity
+        let acceleration = (springForce + dampingForce) / Self.mass
+
+        velocity += acceleration * deltaTime
+        position += velocity * deltaTime
+
+        return abs(position - 1.0) < Self.positionThreshold
+            && abs(velocity) < Self.velocityThreshold
     }
 }
 

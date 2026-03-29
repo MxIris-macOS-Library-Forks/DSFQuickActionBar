@@ -144,9 +144,6 @@ extension DSFQuickActionBar.ResultsView {
 private extension DSFQuickActionBar.ResultsView {
 	// Rebuild the results table
 	func reconfigure() {
-		// If there are no results, hide the results view
-		self.isHidden = self.identifiers.count == 0
-
 		// Build the shortcuts list
 		self.buildShortcuts()
 
@@ -157,6 +154,10 @@ private extension DSFQuickActionBar.ResultsView {
 		if self.identifiers.count > 0 {
 			_ = self.selectFirstSelectableRow()
 		}
+
+		// Notify the window to animate the results transition
+		// (the window handles isHidden toggling with animation)
+		quickActionBarWindow?.handleResultsCountChanged(hasResults: self.identifiers.count > 0)
 	}
 
 	// Map the first 10 selectable identifiers to the return + (1...9) keyboard shortcuts
